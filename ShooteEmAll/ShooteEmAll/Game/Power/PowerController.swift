@@ -17,16 +17,19 @@ class PowerUpController {
     
     private init() {}
     
-    func startSpawning() {
+    func startSpawning(sceneAnchor: AnchorEntity) {
         spawnTimer = Timer.publish(every: 5.0, on: .main, in: .common)
             .autoconnect()
             .sink { _ in
-                self.spawnPowerUp()
+                Task {
+                    await self.spawnPowerUp(sceneAnchor: sceneAnchor)
+                }
             }
     }
     
-    private func spawnPowerUp() {
-        guard let powerUp = PowerUpFactory.createPowerUp(type: .shield) else { return }
+    private func spawnPowerUp(sceneAnchor: AnchorEntity) async {
+        guard let powerUp = await PowerUpFactory.createPowerUp(type: .shield) else { return }
+        await sceneAnchor.addChild(powerUp.entity)
         powerUps.append(powerUp)
     }
     
@@ -50,5 +53,23 @@ class PowerUpController {
     func reset() {
         powerUps.forEach { $0.entity.removeFromParent() }
         powerUps.removeAll()
+    }
+}
+
+
+class PowerUpFactory {
+    static func createPowerUp(type: PowerUpType) async -> PowerUp? {
+        guard let baseEntity = try? await Entity(named: type.assetName, in: realityKitContentBundle) else { return nil }
+        return PowerUp(entity: baseEntity, type: type)
+    }
+}
+
+extension PowerUpType {
+    var assetName: String {
+        switch self {
+        case .shield: return "shieldPowerUp"
+        case .doubleFireRate: return "doubleFireRatePowerUp"
+        case .extraPoints: return "extraPointsPowerUp"
+        }
     }
 }

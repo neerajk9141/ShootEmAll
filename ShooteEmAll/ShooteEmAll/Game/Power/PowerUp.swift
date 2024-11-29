@@ -40,4 +40,14 @@ class PowerUp {
             GameManager.shared.score += 50
         }
     }
+    
+    func updatePosition() {
+        entity.position.z += 0.1 // Adjust speed as needed
+    }
+}
+
+extension PowerUp: Equatable {
+    static func == (lhs: PowerUp, rhs: PowerUp) -> Bool {
+        return lhs.entity == rhs.entity
+    }
 }

@@ -18,20 +18,25 @@ class EnemyController {
     private init() {}
     
         /// Start spawning enemies at intervals based on difficulty
-    func startSpawning() {
+    func startSpawning(sceneAnchor: AnchorEntity) {
         spawnTimer?.cancel() // Ensure no duplicate timers
         spawnTimer = Timer.publish(every: 2.0 / Double(difficultyMultiplier), on: .main, in: .common)
             .autoconnect()
             .sink { _ in
                 Task {
-                    await self.spawnEnemy(type: .standard) // Spawn a standard enemy by default
+                    await self.spawnEnemy(type: .standard, sceneAnchor: sceneAnchor) // Spawn a standard enemy by default
                 }
             }
     }
     
         /// Spawn a new enemy of the given type
-    func spawnEnemy(type: EnemyType) async {
+    @MainActor
+    func spawnEnemy(type: EnemyType, sceneAnchor:AnchorEntity) async {
         guard let enemy = await EnemyFactory.createEnemy(type: type) else { return }
+        let randomX = Float.random(in: -5...5)
+        let randomY = Float.random(in: -3...3)
+        enemy.entity.position = SIMD3<Float>(randomX, randomY, -30)
+        sceneAnchor.addChild(enemy.entity)
         enemies.append(enemy)
     }
     
@@ -46,9 +51,9 @@ class EnemyController {
     }
     
         /// Increase the difficulty by speeding up spawn intervals
-    func increaseDifficulty(by multiplier: Float) {
+    func increaseDifficulty(by multiplier: Float, sceneAnchor: AnchorEntity) {
         difficultyMultiplier += multiplier
-        startSpawning()
+        startSpawning(sceneAnchor: sceneAnchor)
     }
     
         /// Remove all enemies and clean up
@@ -83,7 +88,7 @@ class EnemyFactory {
         case .strong:
             pointValue = 30
             speed = 0.05
-            baseEntity.scale *= 1.5 // Make it visually larger
+//            baseEntity.scale *= 1.5 // Make it visually larger
         }
         
         return Enemy(entity: baseEntity, pointValue: pointValue, speed: speed)
@@ -97,7 +102,7 @@ enum EnemyType {
     
     var assetName: String {
         switch self {
-        case .standard: return "standardEnemy"
+        case .standard: return "enemy"
         case .fast: return "fastEnemy"
         case .strong: return "strongEnemy"
         }

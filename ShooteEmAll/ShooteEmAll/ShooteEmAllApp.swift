@@ -6,13 +6,18 @@
 //
 
 import SwiftUI
+import RealityKitContent
 
 @main
 struct ShooteEmAllApp: App {
 
     @State private var appModel = AppModel()
     @StateObject var gameScene = GameScene()
-
+    
+    init() {
+        RealityKitContent.GestureComponent.registerComponent()
+    }
+    
     var body: some Scene {
         WindowGroup {
             ContentView()

@@ -61,7 +61,7 @@ class GameManager: ObservableObject {
         score += enemy.pointValue
         if score % 100 == 0 { // Example: Every 100 points increase level
             level += 1
-            EnemyController.shared.increaseDifficulty(by: difficultyMultiplierIncrement)
+            EnemyController.shared.increaseDifficulty(by: difficultyMultiplierIncrement, sceneAnchor: AnchorEntity())
         }
     }
 }
