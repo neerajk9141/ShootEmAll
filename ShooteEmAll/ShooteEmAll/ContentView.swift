@@ -19,7 +19,9 @@ struct ContentView: View {
             Text("Score: \(gameScene.score)")
                 .font(.extraLargeTitle)
 
-            ToggleImmersiveSpaceButton()
+            ToggleImmersiveSpaceButton(action: {
+                
+            })
         }
         .padding()
     }

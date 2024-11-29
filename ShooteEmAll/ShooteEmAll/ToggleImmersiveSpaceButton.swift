@@ -14,6 +14,8 @@ struct ToggleImmersiveSpaceButton: View {
     @Environment(\.dismissImmersiveSpace) private var dismissImmersiveSpace
     @Environment(\.openImmersiveSpace) private var openImmersiveSpace
 
+    var action : () -> ()
+    
     var body: some View {
         Button {
             Task { @MainActor in
@@ -54,5 +56,8 @@ struct ToggleImmersiveSpaceButton: View {
         .disabled(appModel.immersiveSpaceState == .inTransition)
         .animation(.none, value: 0)
         .fontWeight(.semibold)
+        .task {
+            action()
+        }
     }
 }

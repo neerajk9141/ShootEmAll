@@ -27,6 +27,8 @@ class GameScene: ObservableObject {
     var targetEntity: ModelEntity! // Target that moves based on hand gestures
     private let smoothingFactor: Float = 0.1 // Smoothing for target movement
 
+    var difficultyLevel: DifficultyLevel = .easy
+    
     @MainActor
     func createScene() async -> AnchorEntity {
         spaceship = await SpaceshipController.shared.setupSpaceship(sceneAnchor: sceneAnchor)

@@ -13,6 +13,7 @@ struct ShooteEmAllApp: App {
 
     @State private var appModel = AppModel()
     @StateObject var gameScene = GameScene()
+    @StateObject var gameSceneviewModel = GameSceneViewModel()
     
     init() {
         RealityKitContent.GestureComponent.registerComponent()
@@ -20,15 +21,17 @@ struct ShooteEmAllApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            GameStartView()
                 .environment(appModel)
                 .environmentObject(gameScene)
+                .environmentObject(gameSceneviewModel)
         }
 
         ImmersiveSpace(id: appModel.immersiveSpaceID) {
             ImmersiveView()
                 .environment(appModel)
                 .environmentObject(gameScene)
+                .environmentObject(gameSceneviewModel)
                 .onAppear {
                     appModel.immersiveSpaceState = .open
                 }
