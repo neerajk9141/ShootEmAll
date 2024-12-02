@@ -67,9 +67,18 @@ class PowerUpFactory {
 extension PowerUpType {
     var assetName: String {
         switch self {
-        case .shield: return "shieldPowerUp"
-        case .doubleFireRate: return "doubleFireRatePowerUp"
-        case .extraPoints: return "extraPointsPowerUp"
+        case .shield:
+            return "shieldPowerUp"
+        case .doubleFireRate:
+            return "doubleFireRatePowerUp"
+        case .extraPoints:
+            return "extraPointsPowerUp"
+        case .healing:
+            return "healingPowerUp"
+        case .multiProjectile:
+            return "multiProjectilePowerUp"
+        case .damageBoost:
+            return "damageBoostPowerUp"
         }
     }
 }

@@ -30,6 +30,11 @@ class SpaceshipController: Movable, Shootable {
     var speed: Float = 5.0
     let maxSpeed: Float = 10.0
     let minSpeed: Float = 1.0
+    
+    private(set) var health: Int = 100
+    var damageMultiplier: Float = 1.0 // Default damage multiplier
+
+    
     private init() {}
     
     @MainActor
@@ -103,36 +108,13 @@ class SpaceshipController: Movable, Shootable {
         projectile.position = projectileStart
         
             // Set the orientation to match the spaceship
-        projectile.orientation = spaceship.orientation
+//        projectile.orientation = spaceship.orientation
+        projectile.transform.rotation = spaceship.transform.rotation
         
             // Add projectile and move it
         ProjectileController.shared.addProjectile(projectile, direction: normalizedForward, sceneAnchor: sceneAnchor)
         ProjectileController.shared.moveProjectile(projectile, direction: normalizedForward, sceneAnchor: sceneAnchor)
     }
-    
-//    func fire(sceneAnchor: AnchorEntity) {
-//        guard let spaceship = spaceship, ProjectileController.shared.canFire else { return }
-//        
-//            // Calculate the forward vector
-//        let forwardVector = normalize(SIMD3<Float>(
-//            spaceship.transform.matrix.columns.2.x,
-//            spaceship.transform.matrix.columns.2.y,
-//            spaceship.transform.matrix.columns.2.z
-//        ))
-//        
-//            // Spawn the projectile at the spaceship's position, facing forward
-//        let projectileStart = spaceship.position + forwardVector * 0.5
-//        let projectile = ModelEntity(
-//            mesh: MeshResource.generateCylinder(height: 0.5, radius: 0.05),
-//            materials: [SimpleMaterial(color: .red, isMetallic: false)]
-//        )
-//        projectile.position = projectileStart
-//        projectile.orientation = spaceship.orientation
-//        
-//            // Add projectile and move it
-//        ProjectileController.shared.addProjectile(projectile, direction: forwardVector, sceneAnchor: sceneAnchor)
-//        ProjectileController.shared.moveProjectile(projectile, direction: forwardVector, sceneAnchor: sceneAnchor)
-//    }
     
     func activateShield() {
         shieldActive = true
@@ -164,5 +146,27 @@ class SpaceshipController: Movable, Shootable {
         spaceship = nil
         shieldActive = false
         fireRateMultiplier = 1.0
+    }
+}
+
+extension SpaceshipController {
+    func enableMultiShot(duration: TimeInterval) {
+        print("Multi-shot enabled for \(duration) seconds!")
+            // Logic to enable multi-shot firing
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            print("Multi-shot disabled")
+                // Disable multi-shot after the duration ends
+        }
+    }
+}
+
+extension SpaceshipController {
+    func applyDamageBoost(multiplier: Float, duration: TimeInterval) {
+        print("Damage boost activated with multiplier \(multiplier) for \(duration) seconds.")
+            // Logic to increase damage multiplier
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
+            print("Damage boost ended.")
+                // Logic to revert damage multiplier
+        }
     }
 }

@@ -23,6 +23,36 @@ class ProjectileController {
     
     private init() {}
     
+    func createProjectile(type: ProjectileType, position: SIMD3<Float>, direction: SIMD3<Float>, sceneAnchor: AnchorEntity) {
+        let projectile: ModelEntity
+        
+        switch type {
+        case .laser:
+                // Create a cylinder to represent the laser
+            projectile = ModelEntity(mesh: MeshResource.generateCylinder(height: 0.5, radius: 0.05))
+            projectile.model?.materials = [SimpleMaterial(color: .blue, isMetallic: true)]
+            
+        case .missile:
+                // Create a box to represent the missile
+            projectile = ModelEntity(mesh: MeshResource.generateBox(size: SIMD3<Float>(0.2, 0.2, 0.5)))
+            projectile.model?.materials = [SimpleMaterial(color: .red, isMetallic: true)]
+            
+        case .plasma:
+                // Create a sphere for the plasma projectile
+            projectile = ModelEntity(mesh: MeshResource.generateSphere(radius: 0.2))
+            var material = PhysicallyBasedMaterial()
+            material.emissiveColor = .init(color: .purple, texture: .none)//init(tint: .purple, intensity: 5)
+            projectile.model?.materials = [material]
+        }
+        
+            // Set projectile position
+        projectile.position = position
+        
+            // Add projectile to the scene
+        ProjectileController.shared.addProjectile(projectile, direction: direction, sceneAnchor: sceneAnchor)
+    }
+
+    
     func addProjectile(_ entity: Entity, direction: SIMD3<Float>, sceneAnchor: AnchorEntity) {
         let projectile = MovableProjectile(entity: entity, speed: 0.5, direction: direction)
         sceneAnchor.addChild(projectile.entity)

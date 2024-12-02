@@ -20,3 +20,19 @@ enum DifficultyLevel: String, CaseIterable {
         }
     }
 }
+
+enum ProjectileType {
+    case laser
+    case missile
+    case plasma
+}
+
+enum PowerUpType {
+    case shield
+    case doubleFireRate
+    case extraPoints
+    case healing
+    case multiProjectile
+    case damageBoost
+}
+

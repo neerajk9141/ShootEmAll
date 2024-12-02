@@ -7,19 +7,27 @@
 
 import SwiftUI
 
+let sensitivity: Float = 0.35
+
 
 struct JoystickView: View {
-    @Binding var targetPosition: SIMD3<Float>
-    @State private var joystickOffset: CGSize = .zero
+    @Binding var targetPosition: SIMD3<Float> // Binding to target position
+    @State private var joystickOffset: CGSize = .zero // Current joystick offset
+    @State private var previousOffset: CGSize = .zero // For smooth transition
     
+        // Define the visual boundaries for the target
+    let boundaryX: ClosedRange<Float> = -5...5 // Horizontal boundary (left and right)
+    let boundaryY: ClosedRange<Float> = -3...3 // Vertical boundary (up and down)
     
     var body: some View {
         GeometryReader { geo in
             ZStack {
+                    // Outer circle representing joystick range
                 Circle()
                     .fill(Color.gray.opacity(0.5))
                     .frame(width: 250, height: 250)
                 
+                    // Inner circle representing joystick's current position
                 Circle()
                     .fill(Color.white)
                     .frame(width: 100, height: 100)
@@ -35,12 +43,22 @@ struct JoystickView: View {
                                 let offsetY = max(-radius, min(radius, translation.height))
                                 joystickOffset = CGSize(width: offsetX, height: offsetY)
                                 
-                                    // Convert offset to target position change
-                                targetPosition.x += Float(offsetX) * sensitivity
-                                targetPosition.y -= Float(offsetY) * sensitivity
+                                    // Proportional scaling for movement
+                                let scaledX = Float(offsetX / radius) * sensitivity
+                                let scaledY = -Float(offsetY / radius) * sensitivity // Negative to match screen coordinates
+                                
+                                    // Update target position with boundary constraints
+                                targetPosition.x = max(boundaryX.lowerBound, min(boundaryX.upperBound, targetPosition.x + scaledX))
+                                targetPosition.y = max(boundaryY.lowerBound, min(boundaryY.upperBound, targetPosition.y + scaledY))
+                                
+                                    // Store the previous offset for smooth release
+                                previousOffset = joystickOffset
                             }
                             .onEnded { _ in
-                                joystickOffset = .zero // Reset joystick position
+                                    // Gradually reset joystick to center on release
+                                withAnimation(.easeOut(duration: 0.3)) {
+                                    joystickOffset = .zero
+                                }
                             }
                     )
             }

@@ -18,7 +18,8 @@ class GameManager: ObservableObject {
     
     private var gameTimer: AnyCancellable?
     private let difficultyMultiplierIncrement: Float = 0.1
-    
+    private(set) var health: Int = 100
+
     private init() {}
     
     func startGame() {
@@ -63,5 +64,15 @@ class GameManager: ObservableObject {
             level += 1
             EnemyController.shared.increaseDifficulty(by: difficultyMultiplierIncrement, sceneAnchor: AnchorEntity())
         }
+    }
+    
+    func heal(amount: Int) {
+        health = min(100, health + amount) // Prevent health from exceeding 100
+        print("Health restored by \(amount). Current health: \(health)")
+    }
+    
+    func addScore(points: Int) {
+        score += points
+        print("Score increased by \(points). Current score: \(score)")
     }
 }

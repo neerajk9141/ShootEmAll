@@ -18,20 +18,20 @@ class EnemyController {
     private init() {}
     
         /// Start spawning enemies at intervals based on difficulty
-    func startSpawning(sceneAnchor: AnchorEntity) {
+    func startSpawning(sceneAnchor: AnchorEntity, type: EnemyType) {
         spawnTimer?.cancel() // Ensure no duplicate timers
         spawnTimer = Timer.publish(every: 2.0 / Double(difficultyMultiplier), on: .main, in: .common)
             .autoconnect()
             .sink { _ in
                 Task {
-                    await self.spawnEnemy(type: .standard, sceneAnchor: sceneAnchor) // Spawn a standard enemy by default
+                    await self.spawnEnemy(type: type, sceneAnchor: sceneAnchor)
                 }
             }
     }
     
         /// Spawn a new enemy of the given type
     @MainActor
-    func spawnEnemy(type: EnemyType, sceneAnchor:AnchorEntity) async {
+    func spawnEnemy(type: EnemyType, sceneAnchor: AnchorEntity) async {
         guard let enemy = await EnemyFactory.createEnemy(type: type) else { return }
         let randomX = Float.random(in: -5...5)
         let randomY = Float.random(in: -3...3)
@@ -39,6 +39,7 @@ class EnemyController {
         sceneAnchor.addChild(enemy.entity)
         enemies.append(enemy)
     }
+
     
         /// Update all enemies' positions
     func updateEnemies() {
@@ -53,9 +54,10 @@ class EnemyController {
         /// Increase the difficulty by speeding up spawn intervals
     func increaseDifficulty(by multiplier: Float, sceneAnchor: AnchorEntity) {
         difficultyMultiplier += multiplier
-        startSpawning(sceneAnchor: sceneAnchor)
+            // Restart spawning enemies with increased difficulty
+        startSpawning(sceneAnchor: sceneAnchor, type: .standard)
     }
-    
+
         /// Remove all enemies and clean up
     func reset() {
         enemies.forEach { $0.entity.removeFromParent() }
@@ -72,26 +74,13 @@ class EnemyController {
 
 
 class EnemyFactory {
+    
     static func createEnemy(type: EnemyType) async -> Enemy? {
         guard let baseEntity = try? await Entity(named: type.assetName, in: realityKitContentBundle) else { return nil }
         
-        let pointValue: Int
-        let speed: Float
-        
-        switch type {
-        case .standard:
-            pointValue = 10
-            speed = 0.1
-        case .fast:
-            pointValue = 20
-            speed = 0.2
-        case .strong:
-            pointValue = 30
-            speed = 0.05
-//            baseEntity.scale *= 1.5 // Make it visually larger
-        }
-        
-        return Enemy(entity: baseEntity, pointValue: pointValue, speed: speed)
+        let enemy = Enemy(entity: baseEntity, pointValue: type.pointValue, speed: type.speed)
+        enemy.health = type.health // Assign enemy-specific health
+        return enemy
     }
 }
 
@@ -99,12 +88,41 @@ enum EnemyType {
     case standard
     case fast
     case strong
+    case boss
     
     var assetName: String {
         switch self {
         case .standard: return "enemy"
         case .fast: return "fastEnemy"
         case .strong: return "strongEnemy"
+        case .boss: return "boss"
+        }
+    }
+    
+    var speed: Float {
+        switch self {
+        case .standard: return 0.1
+        case .fast: return 0.2
+        case .strong: return 0.05
+        case .boss: return 0.02
+        }
+    }
+    
+    var health: Int {
+        switch self {
+        case .standard: return 1
+        case .fast: return 2
+        case .strong: return 5
+        case .boss: return 20 // Bosses have higher health
+        }
+    }
+    
+    var pointValue: Int {
+        switch self {
+        case .standard: return 10
+        case .fast: return 20
+        case .strong: return 50
+        case .boss: return 200
         }
     }
 }

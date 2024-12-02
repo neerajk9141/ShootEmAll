@@ -11,13 +11,6 @@ import RealityKit
 import RealityKitContent
 
 
-enum PowerUpType {
-    case shield
-    case doubleFireRate
-    case extraPoints
-}
-
-
 class PowerUp {
     let entity: Entity
     let type: PowerUpType
@@ -27,19 +20,19 @@ class PowerUp {
         self.type = type
     }
     
-    func applyEffect(to spaceshipController: SpaceshipController) {
-        switch type {
-        case .shield:
-            spaceshipController.activateShield()
-            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak spaceshipController] in
-                spaceshipController?.deactivateShield()
-            }
-        case .doubleFireRate:
-            spaceshipController.applyFireRateBoost(multiplier: 2.0, duration: 5)
-        case .extraPoints:
-            GameManager.shared.score += 50
-        }
-    }
+//    func applyEffect(to spaceshipController: SpaceshipController) {
+//        switch type {
+//        case .shield:
+//            spaceshipController.activateShield()
+//            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak spaceshipController] in
+//                spaceshipController?.deactivateShield()
+//            }
+//        case .doubleFireRate:
+//            spaceshipController.applyFireRateBoost(multiplier: 2.0, duration: 5)
+//        case .extraPoints:
+//            GameManager.shared.score += 50
+//        }
+//    }
     
     func updatePosition() {
         entity.position.z += 0.1 // Adjust speed as needed
@@ -49,5 +42,29 @@ class PowerUp {
 extension PowerUp: Equatable {
     static func == (lhs: PowerUp, rhs: PowerUp) -> Bool {
         return lhs.entity == rhs.entity
+    }
+}
+
+extension PowerUp {
+    func applyEffect(to spaceshipController: SpaceshipController) {
+        switch type {
+        case .shield:
+            spaceshipController.activateShield()
+            
+        case .doubleFireRate:
+            spaceshipController.applyFireRateBoost(multiplier: 2.0, duration: 5)
+            
+        case .extraPoints:
+            GameManager.shared.addScore(points: 50)
+            
+        case .healing:
+            GameManager.shared.heal(amount: 30)
+            
+        case .multiProjectile:
+            spaceshipController.enableMultiShot(duration: 5)
+            
+        case .damageBoost:
+            spaceshipController.applyDamageBoost(multiplier: 2.0, duration: 5)
+        }
     }
 }

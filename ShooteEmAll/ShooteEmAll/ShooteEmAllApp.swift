@@ -20,7 +20,7 @@ struct ShooteEmAllApp: App {
     }
     
     var body: some Scene {
-        WindowGroup {
+        WindowGroup(id:"MainWindowGroup") {
             GameStartView()
                 .environment(appModel)
                 .environmentObject(gameScene)

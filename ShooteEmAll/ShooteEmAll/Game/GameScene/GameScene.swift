@@ -28,13 +28,16 @@ class GameScene: ObservableObject {
     private let smoothingFactor: Float = 0.1 // Smoothing for target movement
 
     var difficultyLevel: DifficultyLevel = .easy
+    var levelController = LevelController()
+    private var cameraController = CameraController()
+    
     
     @MainActor
     func createScene() async -> AnchorEntity {
         spaceship = await SpaceshipController.shared.setupSpaceship(sceneAnchor: sceneAnchor)
         setupTerrain()
             // Start controllers
-        EnemyController.shared.startSpawning(sceneAnchor: sceneAnchor)
+        levelController.setupLevel(sceneAnchor: sceneAnchor)
         PowerUpController.shared.startSpawning(sceneAnchor: sceneAnchor)
         startFiring()
         loadSounds()
@@ -93,6 +96,18 @@ class GameScene: ObservableObject {
         ProjectileController.shared.updateProjectiles()
         PowerUpController.shared.updatePowerUps()
 
+            // Check enemies' health and remove if necessary
+        levelController.getEnemies().forEach { enemy in
+            if enemy.health <= 0 {
+                Task { await removeEnemy(enemy) }
+                score += enemy.pointValue
+                if score % 500 == 0 {
+                    levelController.increaseDifficulty(sceneAnchor: sceneAnchor)
+                }
+            }
+        }
+
+        
             // Check collisions and game state
         checkCollisions()
     }
@@ -129,22 +144,6 @@ class GameScene: ObservableObject {
             // Fire the projectile
         SpaceshipController.shared.fire(sceneAnchor: sceneAnchor)
     }
-    
-//    @MainActor
-//    private func playExplosionAnimation(for enemy: Enemy) async {
-//            // Add explosion animation and sound
-//        if let explosionEntity = try? await Entity(named: "explosion", in: realityKitContentBundle) {
-//            explosionEntity.position = enemy.entity.position
-//            sceneAnchor.addChild(explosionEntity)
-//            explosionSoundPlayer?.play()
-//            
-//                // Remove explosion after 2 seconds
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-//                explosionEntity.removeFromParent()
-//            }
-//        }
-//    }
-    
     
 }
 
@@ -266,4 +265,46 @@ extension GameScene {
         }
     }
     
+}
+
+extension GameScene {
+    private func setupTerrain(for level: Int) {
+        let skybox: Entity
+        switch level {
+        case 1:
+            skybox = createSkybox(named: "spaceScene")
+        case 2:
+            skybox = createSkybox(named: "nebulaScene")
+        case 3:
+            skybox = createSkybox(named: "asteroidBelt")
+        default:
+            return
+        }
+        sceneAnchor.addChild(skybox)
+    }
+    
+    private func createSkybox(named name: String) -> Entity {
+        let skybox = ModelEntity(mesh: MeshResource.generateSphere(radius: 100))
+        if let texture = try? TextureResource.load(named: name) {
+            var material = UnlitMaterial()
+            material.color = .init(texture: .init(texture))
+            skybox.model?.materials = [material]
+        }
+        return skybox
+    }
+}
+
+extension GameScene {
+//    @MainActor
+//    func removeEnemy(_ enemy: Enemy) {
+//        enemy.entity.removeFromParent() // Remove from RealityKit scene
+//        var enemies = levelController.getEnemies()
+//        enemies.removeAll { $0 === enemy }
+//    }
+    
+    @MainActor
+    func removeEnemy(_ enemy: Enemy) {
+        enemy.entity.removeFromParent() // Remove from RealityKit scene
+        levelController.removeEnemy(enemy) // Remove from LevelController's enemies list
+    }
 }

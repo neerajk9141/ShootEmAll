@@ -9,8 +9,6 @@ import SwiftUI
 import RealityKit
 import RealityKitContent
 
-let sensitivity: Float = 0.001
-
 struct ImmersiveView: View {
     
     @EnvironmentObject var gameScene : GameScene

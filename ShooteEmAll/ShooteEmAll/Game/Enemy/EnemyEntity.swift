@@ -12,13 +12,17 @@ class Enemy: Movable {
     let entity: Entity
     var speed: Float
     var pointValue: Int
+    var health: Int // Add health property
+
     var isOffscreen: Bool {
         return entity.position.z >= 0
     }
-    init(entity: Entity, pointValue: Int, speed: Float) {
+    
+    init(entity: Entity, pointValue: Int, speed: Float, health: Int = 1) {
         self.entity = entity
         self.pointValue = pointValue
         self.speed = speed
+        self.health = health
     }
     
     func updatePosition() {

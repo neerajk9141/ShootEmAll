@@ -10,7 +10,8 @@ import SwiftUI
 struct HUDView: View {
     @EnvironmentObject var gameScene: GameScene
     @EnvironmentObject var viewModel : GameSceneViewModel
-    
+    @Environment(\.openWindow) private var openWindow
+
     @Binding var entityPosition : SIMD3<Float>
 
     var body: some View {
@@ -20,10 +21,20 @@ struct HUDView: View {
                 .padding()
             
             VStack {
-                Text("Score: \(gameScene.score)")
-                    .font(.largeTitle)
-                    .foregroundStyle(Color.red)
+                HStack {
+                    Text("Score: \(gameScene.score)")
+                    Text("Health: \(SpaceshipController.shared.health)")
+                }
+                .font(.title)
+                .foregroundColor(.white)
+                            
+                
+                ToggleImmersiveSpaceButton() {
+                    openWindow(id:"MainWindowGroup")
+                }
             }
+            .font(.largeTitle)
+            .foregroundStyle(Color.red)
         }
         .font(.largeTitle)
         .foregroundColor(.white)
