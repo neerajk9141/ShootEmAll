@@ -22,7 +22,7 @@ class GameManager: ObservableObject {
 
     private init() {}
     
-    func startGame() {
+    @MainActor func startGame() {
         score = 0
         level = 1
         isGameOver = false
@@ -45,16 +45,22 @@ class GameManager: ObservableObject {
         EnemyController.shared.updateEnemies()
         ProjectileController.shared.updateProjectiles()
         PowerUpController.shared.updatePowerUps()
-        checkCollisions()
+        Task {
+            await checkCollisions()
+        }
     }
     
+    @MainActor
     private func checkCollisions() {
         ProjectileController.shared.checkCollisions(with: EnemyController.shared.enemies) { [weak self] destroyedEnemy in
             self?.incrementScore(for: destroyedEnemy)
         }
         
-        PowerUpController.shared.checkCollisions(with: SpaceshipController.shared.spaceship) { powerUp in
-            powerUp.applyEffect(to: SpaceshipController.shared)
+        PowerUpController.shared.checkCollisions(with: ProjectileController.shared.projectiles) { [weak self] (powerUp, projectile) in
+            guard let self = self else { return }
+            SpaceshipController.shared.applyPowerUpEffect(type: powerUp.type) // Apply effect
+            powerUp.entity.removeFromParent() // Remove power-up
+            ProjectileController.shared.removeProjectile(projectile) // Remove projectile
         }
     }
     

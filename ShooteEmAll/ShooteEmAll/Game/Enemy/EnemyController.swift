@@ -59,8 +59,14 @@ class EnemyController {
     }
 
         /// Remove all enemies and clean up
+        ///
+    @MainActor
     func reset() {
-        enemies.forEach { $0.entity.removeFromParent() }
+        enemies.forEach {
+            $0.entity.removeFromParent()
+            AppModel.anchor?.removeChild($0.entity)
+
+        }
         enemies.removeAll()
         spawnTimer?.cancel()
     }

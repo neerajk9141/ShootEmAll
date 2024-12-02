@@ -13,5 +13,5 @@ protocol Movable {
 }
 
 protocol Shootable {
-    func fire(sceneAnchor: AnchorEntity)
+    func fire(sceneAnchor: AnchorEntity, projectileType: ProjectileType)
 }

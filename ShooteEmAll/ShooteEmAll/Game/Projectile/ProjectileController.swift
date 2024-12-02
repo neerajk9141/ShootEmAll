@@ -13,9 +13,9 @@ import RealityKitContent
 
 class ProjectileController {
     static let shared = ProjectileController()
-    private var projectiles: [MovableProjectile] = []
+    var projectiles: [MovableProjectile] = []
     private let maxProjectiles = 15
-    private var fireRate: Float = 1.0
+    private var fireRate: Float = 0.1
     
     var canFire: Bool {
         projectiles.count < maxProjectiles
@@ -47,7 +47,7 @@ class ProjectileController {
         
             // Set projectile position
         projectile.position = position
-        
+        projectile.transform.rotation = simd_quatf(angle: .pi*0.5, axis: SIMD3<Float>(1,0,0))
             // Add projectile to the scene
         ProjectileController.shared.addProjectile(projectile, direction: direction, sceneAnchor: sceneAnchor)
     }
@@ -55,6 +55,7 @@ class ProjectileController {
     
     func addProjectile(_ entity: Entity, direction: SIMD3<Float>, sceneAnchor: AnchorEntity) {
         let projectile = MovableProjectile(entity: entity, speed: 0.5, direction: direction)
+        projectile.entity.transform.rotation = simd_quatf(angle: .pi*0.5, axis: SIMD3<Float>(1,0,0))
         sceneAnchor.addChild(projectile.entity)
         projectiles.append(projectile)
     }
@@ -64,6 +65,12 @@ class ProjectileController {
             projectile.updatePosition()
             if projectile.isOffscreen {
                 projectiles.removeAll { $0 === projectile }
+                Task {
+                    let foundEntity = await AppModel.anchor?.children.first(where: { $0 === projectile.entity })
+                    if let foundEntity = foundEntity {
+                        await AppModel.anchor?.removeChild(foundEntity)
+                    }
+                }
             }
         }
     }
@@ -73,8 +80,13 @@ class ProjectileController {
         print("Fire rate adjusted to: \(fireRate)x")
     }
     
+    @MainActor
     func reset() {
-        projectiles.forEach { $0.entity.removeFromParent() }
+        projectiles.forEach {
+            $0.entity.removeFromParent()
+//            $0.entity.parent?.removeChild($0.entity)
+            AppModel.anchor?.removeChild($0.entity)
+        }
         projectiles.removeAll()
         fireRate = 1.0
     }
@@ -116,6 +128,14 @@ class ProjectileController {
                 sceneAnchor.removeChild(projectile)
             }
         }
+    }
+    
+    @MainActor func removeProjectile(_ projectile: MovableProjectile) {
+            // Remove projectile entity from the scene and internal array
+        projectile.entity.removeFromParent()
+        projectiles.removeAll { $0 === projectile }
+        AppModel.anchor?.removeChild(projectile.entity)
+
     }
 }
 

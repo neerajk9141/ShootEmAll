@@ -22,7 +22,8 @@ class GameScene: ObservableObject {
     private let fireInterval: TimeInterval = 0.5
     private var fireSoundPlayer: AVAudioPlayer?
     private var explosionSoundPlayer: AVAudioPlayer?
-    
+    private var ambientPlayer: AVAudioPlayer?
+
     private let targetSensitivity: Float = 2.0 // Sensitivity for target movement
     var targetEntity: ModelEntity! // Target that moves based on hand gestures
     private let smoothingFactor: Float = 0.1 // Smoothing for target movement
@@ -41,6 +42,7 @@ class GameScene: ObservableObject {
         PowerUpController.shared.startSpawning(sceneAnchor: sceneAnchor)
         startFiring()
         loadSounds()
+        playAmbientSound()
         setupTarget()
         startGameLoop()
         
@@ -50,7 +52,7 @@ class GameScene: ObservableObject {
     private func setupTarget() {
         targetEntity = ModelEntity(mesh: MeshResource.generateSphere(radius: 0.1))
         targetEntity.name = "Target"
-        targetEntity.position = SIMD3<Float>(0, 0, -5) // Start at Z = -5
+        targetEntity.position = SIMD3<Float>(0, 0, -20) // Start at Z = -5
         targetEntity.model?.materials = [SimpleMaterial(color: .green, isMetallic: true)]
         targetEntity.components.set(InputTargetComponent())
         targetEntity.generateCollisionShapes(recursive: true)
@@ -73,16 +75,19 @@ class GameScene: ObservableObject {
     }
     
     private func startFiring() {
-        fireTimer = Timer.publish(every: fireInterval, on: .main, in: .common)
+        fireTimer?.cancel()
+        fireTimer = Timer.publish(every: 0.2 / Double(SpaceshipController.shared.fireRateMultiplier), on: .main, in: .common)
             .autoconnect()
-            .sink { _ in
-                self.fireProjectile()
+            .sink { [weak self] _ in
+                SpaceshipController.shared.fire(sceneAnchor: self?.sceneAnchor ?? AnchorEntity(), projectileType: .laser)
             }
     }
     
-    func resetGame() {
+    @MainActor func resetGame() {
         gameTimer?.cancel()
         fireTimer?.cancel()
+        AppModel.anchor?.removeFromParent()
+        sceneAnchor.removeFromParent()
         SpaceshipController.shared.reset()
         EnemyController.shared.reset()
         PowerUpController.shared.reset()
@@ -90,16 +95,26 @@ class GameScene: ObservableObject {
         score = 0
     }
     
+    @MainActor
     private func updateScene() async {
             // Update controllers
         EnemyController.shared.updateEnemies()
         ProjectileController.shared.updateProjectiles()
         PowerUpController.shared.updatePowerUps()
 
+            // Check for collisions with power-ups
+        PowerUpController.shared.checkCollisions(with: ProjectileController.shared.projectiles) { [weak self] (powerUp, projectile) in
+            guard let self = self else { return }
+            self.spaceshipController.applyPowerUpEffect(type: powerUp.type) // Apply effect
+            powerUp.entity.removeFromParent() // Remove power-up
+            ProjectileController.shared.removeProjectile(projectile) // Remove projectile
+        }
             // Check enemies' health and remove if necessary
         levelController.getEnemies().forEach { enemy in
             if enemy.health <= 0 {
-                Task { await removeEnemy(enemy) }
+                Task {
+                    removeEnemy(enemy)
+                }
                 score += enemy.pointValue
                 if score % 500 == 0 {
                     levelController.increaseDifficulty(sceneAnchor: sceneAnchor)
@@ -118,6 +133,7 @@ class GameScene: ObservableObject {
         spaceship.position = position
     }
     
+    @MainActor
     private func checkCollisions() {
         ProjectileController.shared.checkCollisions(with: EnemyController.shared.enemies) { [weak self] destroyedEnemy in
             Task {
@@ -126,8 +142,11 @@ class GameScene: ObservableObject {
             }
         }
         
-        PowerUpController.shared.checkCollisions(with: SpaceshipController.shared.spaceship) { powerUp in
-            powerUp.applyEffect(to: SpaceshipController.shared)
+        PowerUpController.shared.checkCollisions(with: ProjectileController.shared.projectiles) { [weak self] (powerUp, projectile) in
+            guard let self = self else { return }
+            self.spaceshipController.applyPowerUpEffect(type: powerUp.type) // Apply effect
+            powerUp.entity.removeFromParent() // Remove power-up
+            ProjectileController.shared.removeProjectile(projectile) // Remove projectile
         }
     }
     
@@ -142,7 +161,7 @@ class GameScene: ObservableObject {
         guard let spaceship = spaceship else { return }
         playFireSound()
             // Fire the projectile
-        SpaceshipController.shared.fire(sceneAnchor: sceneAnchor)
+        SpaceshipController.shared.fire(sceneAnchor: sceneAnchor, projectileType: .laser)
     }
     
 }
@@ -171,14 +190,14 @@ extension GameScene {
 extension GameScene {
 
     func updateTargetPos(pos: SIMD3<Float>) {
-        targetEntity.move(to: Transform(translation: SIMD3<Float>(pos.x, pos.y, -5)), relativeTo: nil)
+        targetEntity.move(to: Transform(translation: SIMD3<Float>(pos.x, pos.y, -15)), relativeTo: nil)
         updateSpaceshipRotation()
     }
     
     private func updateSpaceshipRotation() {
         print("Updating spaceship rotation")
             // Compute direction to the target
-        let targetPosition = SIMD3<Float>(-targetEntity.position.x,-targetEntity.position.y,5)
+        let targetPosition = SIMD3<Float>(-targetEntity.position.x,-targetEntity.position.y,15)
         self.spaceship.look(at: targetPosition, from: self.spaceship.position, relativeTo: nil)
     }
 }
@@ -188,12 +207,26 @@ extension GameScene {
     
     private func setupTerrain() {
         getPNGSkybox()
+        addDirectionalLight()
+    }
+    
+    func addDirectionalLight() {
+        var lightSource = ModelEntity()
+        
+        let directionalLight = DirectionalLight()
+        directionalLight.light = DirectionalLightComponent(color: .white, intensity: 10000000)
+//        self.sceneAnchor.addChild(directionalLight)
+        directionalLight.shadow = DirectionalLightComponent.Shadow.init(maximumDistance: 5,depthBias: 1.0)
+        lightSource.position = SIMD3<Float>(20, 10, 0)
+        lightSource.look(at: SIMD3<Float>(0,0,-30), from: SIMD3<Float>(20, 10, 0), relativeTo: nil)
+        lightSource.scale *= 0.0001
+        lightSource.addChild(directionalLight)
     }
     
     private func getPNGSkybox() {
         let sphereVideoEntity = ModelEntity(mesh: MeshResource.generateSphere(radius: 530))
         sphereVideoEntity.name = "Skybox"
-        guard let resource = try? TextureResource.load(named: "gameScene") else { return }
+        guard let resource = try? TextureResource.load(named: "skybox3") else { return }
         
         sphereVideoEntity.scale *= .init(x: -1.01, y: 1.01, z: 1.01)
         sphereVideoEntity.transform.translation += SIMD3<Float>(0.0, 0.029, 0.0)
@@ -211,6 +244,8 @@ extension GameScene {
     private func loadSounds() {
         fireSoundPlayer = loadSound(named: "fireSound")
         explosionSoundPlayer = loadSound(named: "explosionSound")
+        ambientPlayer = loadSound(named: "ambientSound")
+
     }
     
     private func loadSound(named name: String) -> AVAudioPlayer? {
@@ -218,10 +253,29 @@ extension GameScene {
         return try? AVAudioPlayer(contentsOf: url)
     }
     
+    private func playKillSound() {
+        explosionSoundPlayer?.stop()
+        explosionSoundPlayer?.currentTime = 0
+        explosionSoundPlayer?.play()
+    }
+    
     private func playFireSound() {
         fireSoundPlayer?.stop()
         fireSoundPlayer?.currentTime = 0
+        fireSoundPlayer?.volume = 8
         fireSoundPlayer?.play()
+    }
+    
+    private func playAmbientSound() {
+        ambientPlayer?.stop()
+        ambientPlayer?.currentTime = 0
+        ambientPlayer?.volume = 0.5
+        ambientPlayer?.play()
+        
+        NotificationCenter.default.addObserver(forName: NSNotification.Name.AVPlayerItemDidPlayToEndTime, object: nil, queue: nil) { [weak self] notification in
+            self?.ambientPlayer?.currentTime = 0
+            self?.ambientPlayer?.play()
+        }
     }
     
 }
@@ -257,11 +311,12 @@ extension GameScene {
         sceneAnchor.addChild(explosionEffect)
         
             // Play explosion sound
-        explosionSoundPlayer?.play()
+        playKillSound()
         
             // Remove explosion effect after 2 seconds
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
             explosionEffect.removeFromParent()
+            self.sceneAnchor.removeChild(explosionEffect)
         }
     }
     
@@ -294,14 +349,7 @@ extension GameScene {
     }
 }
 
-extension GameScene {
-//    @MainActor
-//    func removeEnemy(_ enemy: Enemy) {
-//        enemy.entity.removeFromParent() // Remove from RealityKit scene
-//        var enemies = levelController.getEnemies()
-//        enemies.removeAll { $0 === enemy }
-//    }
-    
+extension GameScene {    
     @MainActor
     func removeEnemy(_ enemy: Enemy) {
         enemy.entity.removeFromParent() // Remove from RealityKit scene

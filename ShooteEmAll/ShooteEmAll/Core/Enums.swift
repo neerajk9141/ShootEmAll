@@ -27,7 +27,7 @@ enum ProjectileType {
     case plasma
 }
 
-enum PowerUpType {
+enum PowerUpType: CaseIterable {
     case shield
     case doubleFireRate
     case extraPoints

@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7644EF062CFDED9800CE3946 /* RealityGeometries in Frameworks */ = {isa = PBXBuildFile; productRef = 7644EF052CFDED9800CE3946 /* RealityGeometries */; };
 		76B4B3AB2CF4609D00FF55E0 /* RealityKitContent in Frameworks */ = {isa = PBXBuildFile; productRef = 76B4B3AA2CF4609D00FF55E0 /* RealityKitContent */; };
 /* End PBXBuildFile section */
 
@@ -58,6 +59,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				76B4B3AB2CF4609D00FF55E0 /* RealityKitContent in Frameworks */,
+				7644EF062CFDED9800CE3946 /* RealityGeometries in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -119,6 +121,7 @@
 			name = ShooteEmAll;
 			packageProductDependencies = (
 				76B4B3AA2CF4609D00FF55E0 /* RealityKitContent */,
+				7644EF052CFDED9800CE3946 /* RealityGeometries */,
 			);
 			productName = ShooteEmAll;
 			productReference = 76B4B3A52CF4609D00FF55E0 /* ShooteEmAll.app */;
@@ -175,6 +178,9 @@
 			);
 			mainGroup = 76B4B39C2CF4609D00FF55E0;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				7644EF042CFDED9800CE3946 /* XCRemoteSwiftPackageReference "RealityGeometries" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 76B4B3A62CF4609D00FF55E0 /* Products */;
 			projectDirPath = "";
@@ -472,7 +478,23 @@
 		};
 /* End XCConfigurationList section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+		7644EF042CFDED9800CE3946 /* XCRemoteSwiftPackageReference "RealityGeometries" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/maxxfrazer/RealityGeometries";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.1.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
 /* Begin XCSwiftPackageProductDependency section */
+		7644EF052CFDED9800CE3946 /* RealityGeometries */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 7644EF042CFDED9800CE3946 /* XCRemoteSwiftPackageReference "RealityGeometries" */;
+			productName = RealityGeometries;
+		};
 		76B4B3AA2CF4609D00FF55E0 /* RealityKitContent */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = RealityKitContent;

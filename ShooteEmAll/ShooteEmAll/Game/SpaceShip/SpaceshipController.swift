@@ -18,7 +18,7 @@ class SpaceshipController: Movable, Shootable {
     static let shared = SpaceshipController()
     private(set) var spaceship: Entity?
     private var shieldActive: Bool = false
-    private var fireRateMultiplier: Float = 1.0
+    var fireRateMultiplier: Float = 1.0
         // Rotation and control parameters
     private let maxRotationDegrees: Float = 60.0
     private let rotationSpeed: Float = 0.05
@@ -33,8 +33,8 @@ class SpaceshipController: Movable, Shootable {
     
     private(set) var health: Int = 100
     var damageMultiplier: Float = 1.0 // Default damage multiplier
+    var isMultiShotEnabled: Bool = false // Determines if multi-shot mode is active
 
-    
     private init() {}
     
     @MainActor
@@ -53,13 +53,6 @@ class SpaceshipController: Movable, Shootable {
             return spaceship
         }
         return nil
-    }
-    
-    func handleGestureInput(joystickInput: SIMD2<Float>, isFiring: Bool, sceneAnchor: AnchorEntity) {
-        updateSteering(joystickInput: joystickInput)
-        if isFiring {
-//            fire(sceneAnchor: sceneAnchor)
-        }
     }
     
     func updateSteering(joystickInput: SIMD2<Float>) {
@@ -90,50 +83,53 @@ class SpaceshipController: Movable, Shootable {
         spaceship?.transform.rotation = to
     }
     
-    func fire(sceneAnchor: AnchorEntity) {
-        guard let spaceship = spaceship, ProjectileController.shared.canFire else { return }
-        
-            // Calculate the forward vector based on spaceship's current orientation
-        let forwardVector = spaceship.transform.matrix.columns.2
-        let normalizedForward = normalize(SIMD3<Float>(forwardVector.x, forwardVector.y, forwardVector.z))
-        
-            // Set the starting position of the projectile
-        let projectileStart = spaceship.position + normalizedForward * 0.5
-        
-            // Create a projectile entity
-        let projectile = ModelEntity(
-            mesh: MeshResource.generateCylinder(height: 0.5, radius: 0.05),
-            materials: [SimpleMaterial(color: .red, isMetallic: false)]
-        )
-        projectile.position = projectileStart
-        
-            // Set the orientation to match the spaceship
-//        projectile.orientation = spaceship.orientation
-        projectile.transform.rotation = spaceship.transform.rotation
-        
-            // Add projectile and move it
-        ProjectileController.shared.addProjectile(projectile, direction: normalizedForward, sceneAnchor: sceneAnchor)
-        ProjectileController.shared.moveProjectile(projectile, direction: normalizedForward, sceneAnchor: sceneAnchor)
-    }
-    
-    func activateShield() {
-        shieldActive = true
-            // Add visual shield effect
-        print("Shield activated!")
-    }
-    
-    func deactivateShield() {
-        shieldActive = false
-            // Remove shield effect
-        print("Shield deactivated!")
-    }
-    
-    func applyFireRateBoost(multiplier: Float, duration: TimeInterval) {
-        fireRateMultiplier = multiplier
-//        ProjectileController.shared.adjustFireRate(by: fireRateMultiplier)
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
-            self?.resetFireRate()
+    func fire(sceneAnchor: AnchorEntity, projectileType: ProjectileType){
+        Task {
+            guard let spaceship = spaceship else { return }
+            
+                // Forward vector for the spaceship
+            let forwardVector = await spaceship.transform.matrix.columns.2
+            let normalizedForward = normalize(SIMD3<Float>(forwardVector.x, forwardVector.y, forwardVector.z))
+            let startPosition = await spaceship.position + normalizedForward * 0.5
+            
+                // Fire main projectile
+            let mainProjectile = await createProjectile(type: projectileType, position: startPosition, direction: normalizedForward)
+            ProjectileController.shared.addProjectile(mainProjectile, direction: normalizedForward, sceneAnchor: sceneAnchor)
+            
+            if isMultiShotEnabled {
+                    // Fire additional projectiles at slight angles
+                let offsetAngle: Float = 0.2 // Adjust the angle offset for multi-shot
+                let leftDirection = rotateVector(normalizedForward, by: offsetAngle)
+                let rightDirection = rotateVector(normalizedForward, by: -offsetAngle)
+                
+                let leftProjectile = await createProjectile(type: projectileType, position: startPosition, direction: leftDirection)
+                let rightProjectile = await createProjectile(type: projectileType, position: startPosition, direction: rightDirection)
+                
+                ProjectileController.shared.addProjectile(leftProjectile, direction: leftDirection, sceneAnchor: sceneAnchor)
+                ProjectileController.shared.addProjectile(rightProjectile, direction: rightDirection, sceneAnchor: sceneAnchor)
+            }
         }
+    }
+    
+        /// Create projectiles with different styles
+    @MainActor
+    private func createProjectile(type: ProjectileType, position: SIMD3<Float>, direction: SIMD3<Float>) async -> ModelEntity {
+        let projectile: ModelEntity
+        switch type {
+        case .laser:
+            projectile = ModelEntity(mesh: MeshResource.generateCylinder(height: 0.5, radius: 0.05))
+            projectile.model?.materials = [SimpleMaterial(color: .systemTeal, isMetallic: true)]
+        case .missile:
+            projectile = ModelEntity(mesh: MeshResource.generateBox(size: [0.1, 0.1, 1.0]))
+            projectile.model?.materials = [SimpleMaterial(color: .red, isMetallic: false)]
+        case .plasma:
+            projectile = ModelEntity(mesh: MeshResource.generateSphere(radius: 0.3))
+            var material = PhysicallyBasedMaterial()
+            material.emissiveColor = .init(color: .purple)//.init(tint: .purple, intensity: 5.0)
+            projectile.model?.materials = [material]
+        }
+        projectile.position = position
+        return projectile
     }
     
     private func resetFireRate() {
@@ -147,26 +143,88 @@ class SpaceshipController: Movable, Shootable {
         shieldActive = false
         fireRateMultiplier = 1.0
     }
+    
+    private func rotateVector(_ vector: SIMD3<Float>, by angle: Float) -> SIMD3<Float> {
+        let rotationMatrix = float3x3(simd_quaternion(angle, SIMD3<Float>(0, 1, 0)))
+        return simd_mul(rotationMatrix, vector)
+    }
 }
 
 extension SpaceshipController {
+        // Apply power-up effects dynamically
+    func applyPowerUpEffect(type: PowerUpType) {
+        switch type {
+        case .shield:
+            activateShield()
+        case .doubleFireRate:
+            applyFireRateBoost(multiplier: 5.0, duration: 5)
+        case .extraPoints:
+            GameManager.shared.addScore(points: 50)
+        case .healing:
+            GameManager.shared.heal(amount: 30)
+        case .multiProjectile:
+            enableMultiShot(duration: 5)
+        case .damageBoost:
+            applyDamageBoost(multiplier: 2.0, duration: 5)
+        }
+    }
+    
     func enableMultiShot(duration: TimeInterval) {
-        print("Multi-shot enabled for \(duration) seconds!")
-            // Logic to enable multi-shot firing
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            print("Multi-shot disabled")
-                // Disable multi-shot after the duration ends
+        guard !isMultiShotEnabled else { return }
+        isMultiShotEnabled = true
+        print("Multi-shot enabled!")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            self?.isMultiShotEnabled = false
+            print("Multi-shot disabled!")
         }
     }
-}
-
-extension SpaceshipController {
+    
+    func activateShield() {
+        guard !shieldActive else { return }
+        shieldActive = true
+        print("Shield activated!")
+        
+            // Add visual feedback for the shield
+        let shieldEntity = ModelEntity(mesh: MeshResource.generateSphere(radius: 0.5))
+        shieldEntity.model?.materials = [SimpleMaterial(color: .cyan.withAlphaComponent(0.4), isMetallic: true)]
+        shieldEntity.position = spaceship?.position ?? .zero
+        shieldEntity.name = "Shield"
+        spaceship?.addChild(shieldEntity)
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak self] in
+            shieldEntity.removeFromParent()
+            self?.shieldActive = false
+            print("Shield deactivated!")
+        }
+    }
+    
+   
+    
+    func applyFireRateBoost(multiplier: Float, duration: TimeInterval) {
+        fireRateMultiplier *= multiplier
+        print("Fire rate boosted to \(fireRateMultiplier)x!")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            self?.fireRateMultiplier = 1.0
+            print("Fire rate reset to normal.")
+        }
+    }
+    
     func applyDamageBoost(multiplier: Float, duration: TimeInterval) {
-        print("Damage boost activated with multiplier \(multiplier) for \(duration) seconds.")
-            // Logic to increase damage multiplier
-        DispatchQueue.main.asyncAfter(deadline: .now() + duration) {
-            print("Damage boost ended.")
-                // Logic to revert damage multiplier
+        damageMultiplier *= multiplier
+        print("Damage boosted to \(damageMultiplier)x!")
+        
+        DispatchQueue.main.asyncAfter(deadline: .now() + duration) { [weak self] in
+            self?.damageMultiplier = 1.0
+            print("Damage reset to normal.")
         }
     }
+    
+    func deactivateShield() {
+        shieldActive = false
+            // Remove shield effect
+        print("Shield deactivated!")
+    }
+    
 }

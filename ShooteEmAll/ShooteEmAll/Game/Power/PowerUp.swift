@@ -20,20 +20,6 @@ class PowerUp {
         self.type = type
     }
     
-//    func applyEffect(to spaceshipController: SpaceshipController) {
-//        switch type {
-//        case .shield:
-//            spaceshipController.activateShield()
-//            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak spaceshipController] in
-//                spaceshipController?.deactivateShield()
-//            }
-//        case .doubleFireRate:
-//            spaceshipController.applyFireRateBoost(multiplier: 2.0, duration: 5)
-//        case .extraPoints:
-//            GameManager.shared.score += 50
-//        }
-//    }
-    
     func updatePosition() {
         entity.position.z += 0.1 // Adjust speed as needed
     }

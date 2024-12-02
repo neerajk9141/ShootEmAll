@@ -24,10 +24,11 @@ struct ImmersiveView: View {
             RealityView { content,attachments in
                     // Add the initial RealityKit content
                 let scene = await gameScene.createScene()
+                AppModel.anchor = scene
                 content.add(scene)
                 gameScene.addLight()
                 if let attachment = attachments.entity(for: "HUDView") {
-                    attachment.position = SIMD3<Float>(0.4, 1.0, -1.5)
+                    attachment.position = SIMD3<Float>(0.4, 0.0, -1.0)
                     attachment.transform.rotation = simd_quatf(angle: -.pi/4, axis: SIMD3<Float>(1,0,0))
                     content.add(attachment)
                 }
@@ -52,7 +53,10 @@ struct ImmersiveView: View {
             gameSceneViewModel.updateTargetPosition(x: entityPosition.x, y: entityPosition.y)
             gameScene.updateTargetPos(pos: newValue)
         }
-        
+        .onDisappear {
+            
+            gameScene.resetGame()
+        }
     }
 }
 

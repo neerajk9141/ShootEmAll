@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-let sensitivity: Float = 0.35
+let sensitivity: Float = 0.2
 
 
 struct JoystickView: View {
@@ -16,8 +16,8 @@ struct JoystickView: View {
     @State private var previousOffset: CGSize = .zero // For smooth transition
     
         // Define the visual boundaries for the target
-    let boundaryX: ClosedRange<Float> = -5...5 // Horizontal boundary (left and right)
-    let boundaryY: ClosedRange<Float> = -3...3 // Vertical boundary (up and down)
+    let boundaryX: ClosedRange<Float> = -15...15 // Horizontal boundary (left and right)
+    let boundaryY: ClosedRange<Float> = -6...6 // Vertical boundary (up and down)
     
     var body: some View {
         GeometryReader { geo in

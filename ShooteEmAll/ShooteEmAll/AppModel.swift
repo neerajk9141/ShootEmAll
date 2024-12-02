@@ -6,11 +6,12 @@
 //
 
 import SwiftUI
-
+import RealityKit
 /// Maintains app-wide state
 @MainActor
 @Observable
 class AppModel {
+    static var anchor: AnchorEntity?
     let immersiveSpaceID = "ImmersiveSpace"
     enum ImmersiveSpaceState {
         case closed
