@@ -14,12 +14,16 @@ struct ImmersiveView: View {
     @EnvironmentObject var gameScene : GameScene
     @Environment(AppModel.self) private var appModel
     @EnvironmentObject var gameSceneViewModel : GameSceneViewModel
+    @Environment(HandViewModel.self) private var model
 
     @State private var lastTranslation = CGSize.zero
     @State private var entityPosition = SIMD3<Float>(0, 0, -5.0) // Initial position
+//    TextProgressView(text: "🫱🏿‍🫲🏻", value: model.leftScores["🫱🏿‍🫲🏻"] ?? 0)
 
     
     var body: some View {
+        @Bindable var model = model
+
         ZStack {
             RealityView { content,attachments in
                     // Add the initial RealityKit content
@@ -53,10 +57,43 @@ struct ImmersiveView: View {
             gameSceneViewModel.updateTargetPosition(x: entityPosition.x, y: entityPosition.y)
             gameScene.updateTargetPos(pos: newValue)
         }
+        .onChange(of: model.leftScores["🫱🏿‍🫲🏻"], { oldValue, newValue in
+            if (model.leftScores["🫱🏿‍🫲🏻"] ?? 0) > 91 {
+                
+            }
+        })
+        .onChange(of: model.rightScores["🫱🏿‍🫲🏻"], { oldValue, newValue in
+            if (model.rightScores["🫱🏿‍🫲🏻"] ?? 0) > 91 {
+                
+            }
+        })
         .onDisappear {
-            
             gameScene.resetGame()
         }
+        .upperLimbVisibility(model.latestHandTracking.isSkeletonVisible ? .hidden : .automatic)
+        
+        .task {
+            await model.startHandTracking()
+        }
+        .task {
+            await model.publishHandTrackingUpdates()
+        }
+        .task {
+            await model.monitorSessionEvents()
+        }
+#if targetEnvironment(simulator)
+        .task {
+            await model.publishSimHandTrackingUpdates()
+        }
+#endif
+    }
+    
+    func checkGestureScore() {
+        
+        if (model.rightScores["🫱🏿‍🫲🏻"] ?? 0) > 91 && (model.leftScores["🫱🏿‍🫲🏻"] ?? 0) > 91 {
+            
+        }
+        
     }
 }
 

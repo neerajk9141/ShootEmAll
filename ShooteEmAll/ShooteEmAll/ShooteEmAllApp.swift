@@ -14,6 +14,7 @@ struct ShooteEmAllApp: App {
     @State private var appModel = AppModel()
     @StateObject var gameScene = GameScene()
     @StateObject var gameSceneviewModel = GameSceneViewModel()
+    @State var handViewModel = HandViewModel()
     
     init() {
         RealityKitContent.GestureComponent.registerComponent()
@@ -23,6 +24,7 @@ struct ShooteEmAllApp: App {
         WindowGroup(id:"MainWindowGroup") {
             GameStartView()
                 .environment(appModel)
+                .environment(handViewModel)
                 .environmentObject(gameScene)
                 .environmentObject(gameSceneviewModel)
         }
@@ -30,6 +32,7 @@ struct ShooteEmAllApp: App {
         ImmersiveSpace(id: appModel.immersiveSpaceID) {
             ImmersiveView()
                 .environment(appModel)
+                .environment(handViewModel)
                 .environmentObject(gameScene)
                 .environmentObject(gameSceneviewModel)
                 .onAppear {

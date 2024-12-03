@@ -14,6 +14,8 @@ class GameScene: ObservableObject {
     private var sceneAnchor = AnchorEntity()
     @Published var score: Int = 0
     private var spaceship: Entity!
+    private var steering: Entity!
+
     private var spaceshipController = SpaceshipController.shared
 
     private var gameTimer: AnyCancellable?
@@ -45,8 +47,25 @@ class GameScene: ObservableObject {
         playAmbientSound()
         setupTarget()
         startGameLoop()
-        
+        await addSteering(sceneAnchor: sceneAnchor)
         return sceneAnchor
+    }
+    
+    @MainActor
+    func addSteering(sceneAnchor: AnchorEntity) async {
+        if let steering = try? await Entity(named: "steering", in: realityKitContentBundle) {
+            steering.position = SIMD3<Float>(0, 0, -0.2)
+            steering.components.set(InputTargetComponent())
+
+            let radius = steering.visualBounds(relativeTo: nil).boundingRadius
+            
+            var collisionShape = ShapeResource.generateSphere(radius: radius)
+            steering.components.set(InputTargetComponent())
+            steering.components.set(CollisionComponent(shapes: [collisionShape]))
+            steering.generateCollisionShapes(recursive: true)
+            sceneAnchor.addChild(steering)
+            self.steering = steering
+        }
     }
     
     private func setupTarget() {

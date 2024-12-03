@@ -39,7 +39,7 @@ class SpaceshipController: Movable, Shootable {
     
     @MainActor
     func setupSpaceship(sceneAnchor: AnchorEntity) async -> Entity? {
-        if let spaceship = try? await Entity(named: "spaceship", in: realityKitContentBundle) {
+        if let spaceship = try? await Entity(named: "lumanarianShip", in: realityKitContentBundle) {
             if let animation = spaceship.availableAnimations.first {
                 spaceship.playAnimation(animation)
             }

@@ -10,7 +10,8 @@ struct GameStartView: View {
     
     @Environment(\.openWindow) private var openWindow
     @Environment(\.dismissWindow) private var dismissWindow
-    
+    @Environment(HandViewModel.self) private var model
+
     @EnvironmentObject var gameScene: GameScene
     @StateObject private var viewModel = GameSceneViewModel()
     
